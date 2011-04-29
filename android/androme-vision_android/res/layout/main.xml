@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent" android:layout_height="wrap_content">
+<!-- dummy layout used to prevent EditText receiving focus on startup -->
+<LinearLayout 
+	android:id="@+id/LinearLayout01" 
+	android:focusable="true"
+	android:layout_width="fill_parent"
+    android:layout_height="wrap_content" android:layout_alignParentTop="true" android:focusableInTouchMode="true">
+    <ImageView android:layout_width="wrap_content" android:id="@+id/imageView1" android:src="@drawable/logo_black" android:layout_height="wrap_content"></ImageView>
+</LinearLayout>
+<LinearLayout 
+	android:id="@+id/LinearLayout02" 
+	android:layout_width="fill_parent" 
+	android:layout_height="wrap_content" 
+	android:layout_margin="1dip"
+	android:layout_below="@+id/LinearLayout01">
+<EditText 
+	android:text="" 
+	android:id="@+id/message" 
+	android:layout_height="wrap_content" 
+	android:layout_margin="1dip" 
+	android:layout_weight="10" android:layout_width="200dip">
+</EditText>
+<Button
+ 	android:layout_width="wrap_content"        
+ 	android:layout_height="wrap_content"
+ 	android:text="Send" 
+ 	android:id="@+id/send" 
+ 	android:layout_margin="1dip" android:layout_weight="1"/>
+</LinearLayout>
+
+<LinearLayout 
+	android:id="@+id/LinearLayout03" 
+	android:layout_width="fill_parent"
+	android:layout_below="@+id/LinearLayout02" android:layout_height="wrap_content" android:layout_above="@+id/LinearLayout04">
+<ScrollView android:id="@+id/ScrollView01" android:layout_width="fill_parent" android:layout_marginTop="5dip" android:layout_height="fill_parent">
+<TextView android:text="" android:id="@+id/log" android:layout_width="fill_parent" android:layout_height="fill_parent"></TextView>
+</ScrollView>
+</LinearLayout>
+<LinearLayout 
+	android:id="@+id/LinearLayout04" 
+	android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content" 
+    android:gravity="bottom" 
+    android:layout_alignParentBottom="true">
+    
+    <Button
+ 	android:layout_width="fill_parent"        
+ 	android:layout_height="wrap_content"
+ 	android:layout_weight="1"
+ 	android:text="How to use" android:id="@+id/help"></Button> 
+    
+    <Button
+ 	android:layout_width="fill_parent"        
+ 	android:layout_height="wrap_content"
+ 	android:layout_weight="1"
+ 	android:text="Change Port" android:id="@+id/changePort"></Button> 
+
+</LinearLayout>
+</RelativeLayout >
