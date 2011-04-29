@@ -1,0 +1,18 @@
+{
+  "name": "A-Chat",
+  "description": "Provides basic data communication between Android and Chrome. First part of Android-Vision project.",
+  "version": "0.0.1",
+  "app": {
+    "launch": {
+      "local_path": "background.html"
+    }
+  },
+  "icons": {
+    "16": "images/icon-16.gif",
+    "128": "images/icon-128.gif"
+  },
+  "permissions": [
+    "http://*/",
+    "notifications"
+  ]
+}
