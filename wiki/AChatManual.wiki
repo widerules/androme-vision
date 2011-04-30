@@ -19,7 +19,7 @@ Instructions on how to use A-Chat.
 
 ==== Android + Chrome ====
  # Download and install A-Chat(Android) client from Android Market.
- # Get A-Chat(Chrome) client from Web Store and install.
+ # Get A-Chat(Chrome) client from Web Store (https://chrome.google.com/webstore/detail/kfhddchcbfladdbnjcbfefmdamoghnmn) and install.
  # Launch A-Chat(Android) on Android device.
        * Connection to Wi-Fi network required.
        * If success, screen will show server IP address and port number (e.g. 192.168.1.3:8080).
