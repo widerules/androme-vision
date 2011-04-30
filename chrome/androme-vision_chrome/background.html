@@ -39,7 +39,7 @@ function ip_prompt(){
 	 * Since XmlHttpRequest is one request one response model(so far as I know),
      * this function send empty requests periodically, working as a server listener.
      */
-	interval = setInterval("sendXHR('__req')", 1000);
+	interval = setInterval("sendXHR('')", 500);
 }
 
 /* This function gets chat message from text box and append it to text area. */
@@ -79,7 +79,7 @@ function sendXHR(msg){
 				output( xmlhttp.responseText, "ANDROID");	
 		}
 	}
-	xmlhttp.open("GET","http://" + serverIP + "/" + msg,true);
+	xmlhttp.open("GET","http://" + serverIP + "/" + "__req_" + msg,true);
 	xmlhttp.send();
 }
 
@@ -89,12 +89,7 @@ function changeIP(){
 }
 
 function help(){
-	alert("1. Install android/chrome on phone/pc respectively.\n" +
-	      "2. Launch A-Chat android app, note down the ip/port shown on screen.\n" +
-		  "3. Launch A-Chat Chrome extension and input the phone’s ip/port get from step 2.\n" + 
-		  "4. If Chrome side shows ‘connection established’, you can start chatting. \n" +
-		  "5. *in case of wrong ip or port conflict, click the button at bottom to change ip/port"
-	);
+	window.open('http://code.google.com/p/androme-vision/wiki/AChatManual?ts=1304189102&updated=AChatManual','A-Chat Manual');
 }
 
 </script>
