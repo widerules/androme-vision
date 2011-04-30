@@ -485,7 +485,7 @@ public class AChatActivity extends Activity {
 	    		}
 	    		// request sent from normal browser window
 	    		else{
-	    			String getApp = "<a href=\"http://www.google.com\">Get A-Chat from Web Store to experience all features.</a>";
+	    			String getApp = "<a href=\"https://chrome.google.com/webstore/detail/kfhddchcbfladdbnjcbfefmdamoghnmn\">Get A-Chat from Web Store to experience all features.</a>";
 	    			in = new BufferedInputStream(new ByteArrayInputStream(getApp.getBytes()));
 	    		}
 	    		
