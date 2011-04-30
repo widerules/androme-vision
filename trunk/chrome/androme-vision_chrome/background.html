@@ -88,28 +88,46 @@ function changeIP(){
 	ip_prompt();
 }
 
+function help(){
+	alert("1. Install android/chrome on phone/pc respectively.\n" +
+	      "2. Launch A-Chat android app, note down the ip/port shown on screen.\n" +
+		  "3. Launch A-Chat Chrome extension and input the phone’s ip/port get from step 2.\n" + 
+		  "4. If Chrome side shows ‘connection established’, you can start chatting. \n" +
+		  "5. *in case of wrong ip or port conflict, click the button at bottom to change ip/port"
+	);
+}
+
 </script>
 </head>
 
 <body onLoad="ip_prompt()">
+
 <!-- Table is used here for locating elements in center of the window -->
 <table height="100%" width="100%">
+<tr>
 <td valign="center" align="center">
-<table height="300" width="500">
-<td valign="center" align="center">
-	<img src="images/logo.gif" alt="logo"/>
 
-	<!-- The following are the actual useful elements -->
-	<!-- "keycode == 13" - receive Enter as trigger -->
-	<input type="text" size="78" value="" id="tb" onkeydown="if (event.keyCode == 13) newInput()"/>
-	<input type="button" style="width:70;height:23" value="Send" onClick="newInput()"/>
-	<textarea readonly rows="10" cols="70" id="ta" style="margin-top:1.5em;margin-bottom:1em;line-height:2"></textarea>
+	<table height="300" width="500">
+	<tr>
+	<td valign="center" align="center">
+		<img src="images/logo.gif" alt="logo"/>
+	
+		<!-- The following are the actual useful elements -->
+		<!-- "keycode == 13" - receive Enter as trigger -->
+		<input type="text" size="78" value="" id="tb" onkeydown="if (event.keyCode == 13) newInput()"/>
+		<input type="button" style="width:70;height:23" value="Send" onClick="newInput()"/>
+		<textarea readonly rows="10" cols="70" id="ta" style="margin-top:1.5em;margin-bottom:1em;line-height:2"></textarea>
+	
+		<input type="button" style="width:225;height:23;margin-right:4em" value="How to use" onClick="help()"/>
+		<input type="button" style="width:225;height:23" value="Change Server IP/Port" onClick="changeIP()"/>
+		<br/><br/><br/>
+		<a href="http://code.google.com/p/androme-vision" style="font-family: arial,sans-serif;font-size: 10pt">Androme-Vision Project</a>
+	</td>
+	</tr>
+	</table>
 
-	<input type="button" style="width:225;height:23;margin-right:4em" value="How to use" onClick="changeIP()"/>
-	<input type="button" style="width:225;height:23" value="Change Server IP/Port" onClick="changeIP()"/>
 </td>
-</table>
-</td>
+</tr>
 </table>
     
 </body>
