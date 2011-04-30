@@ -31,13 +31,17 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
+import android.text.Html;
 import android.text.InputType;
+import android.text.method.LinkMovementMethod;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -65,6 +69,7 @@ public class AChatActivity extends Activity {
 	private Button changePort;
 	private EditText message;
 	private static TextView messageBoard;
+	private static TextView link;
 	private static ScrollView scroll;
     
 	private static String ipAddress;
@@ -74,6 +79,7 @@ public class AChatActivity extends Activity {
     private static final int DIALOG_ID_HELP = 1;
     private static final int DIALOG_ID_CHANGEPORT = 2;
     private static final int DIALOG_ID_EXIT = 3;
+    private static final int DIALOG_ID_INVALIDPORT = 4;
     private static final int MSGBUFFER_SIZE = 4096;
     
     /** Called when the activity is first created. */
@@ -87,11 +93,16 @@ public class AChatActivity extends Activity {
         message = (EditText) findViewById(R.id.message);
         changePort = (Button) findViewById(R.id.changePort);
         messageBoard = (TextView) findViewById(R.id.log);
+        link = (TextView) findViewById(R.id.link);
         messageBoard.setLineSpacing(0, (float) 1.5);
         scroll = (ScrollView) findViewById(R.id.ScrollView01);
         
         // start server on default port upon application entry
-        startAndromeServer(new Integer(port));
+        try{
+        	startAndromeServer(port);
+        }
+        catch(Exception e){
+        }
         
         send.setOnClickListener(new OnClickListener(){
         	public void onClick(View arg0){
@@ -122,6 +133,8 @@ public class AChatActivity extends Activity {
                 showDialog(DIALOG_ID_CHANGEPORT);
             }
         });
+        link.setMovementMethod(LinkMovementMethod.getInstance());
+        link.setText(Html.fromHtml("<a href=\"http://code.google.com/p/androme-vision/\">Androme-Vision Project</a>"));
         
     }//end of onCreate()
     
@@ -155,6 +168,7 @@ public class AChatActivity extends Activity {
      * 	1. help	message
      * 	2. change port prompt
      * 	3. exit	confirmation
+     * 	4. invalid port number alert
      */
     @Override
     protected Dialog onCreateDialog(int id) {
@@ -167,7 +181,12 @@ public class AChatActivity extends Activity {
         	builder = new AlertDialog.Builder(this);
         	builder.setTitle("Error")
         		   .setMessage("Please connect to a WIFI-network, then click Change Port.")
-        		   .setPositiveButton("OK", null);
+        		   .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        	           public void onClick(DialogInterface dialog, int id) {
+        	        	   startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+        	        	   
+        	           }
+        		   });
         	alert = builder.create();
         	return alert;
         	
@@ -192,8 +211,18 @@ public class AChatActivity extends Activity {
         	       .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
         	        	   stopAndromeServer();
-        	        	   port = Integer.parseInt(newPort.getText().toString());
-        	        	   startAndromeServer(new Integer(port));
+        	        	   try{
+        	        		   port = Integer.parseInt(newPort.getText().toString());
+        	        		   if(port < 1024 || port > 65535){
+        	        			   showDialog(DIALOG_ID_INVALIDPORT);
+        	        		   }
+        	        		   else{
+        	        			   startAndromeServer(new Integer(port));
+        	        		   }
+        	        	   }
+        	        	   catch(Exception e){
+        	        		   showDialog(DIALOG_ID_INVALIDPORT);
+        	        	   }
         	           }
         	       })
         	       .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -220,6 +249,19 @@ public class AChatActivity extends Activity {
         	       });
         	alert = builder.create();
         	return alert;
+        
+        case DIALOG_ID_INVALIDPORT:
+        	builder = new AlertDialog.Builder(this);
+        	builder.setTitle("Error")
+        		   .setMessage("Range of valid port number is 1024~65535.")
+        		   .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        	           public void onClick(DialogInterface dialog, int id) {
+        	        	   showDialog(DIALOG_ID_CHANGEPORT);
+       	           }
+       	       });
+        	alert = builder.create();
+        	return alert;
+        	
         }
         return null;
     }//end of onCreateDialog
@@ -253,15 +295,19 @@ public class AChatActivity extends Activity {
 
     		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
     			showDialog(DIALOG_ID_NOWIFI);
-    			throw new Exception("Please connect to a WIFI-network.");
     		}
             
-    		writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
-		    server = new AndromeServer(ipAddress,port);
-		    server.start();
-		    
-    	} catch (Exception e) {
-    	}	
+		    try{
+		    	server = new AndromeServer(ipAddress,port);
+		    	server.start();
+		    	writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
+		    }
+		    catch(Exception e){
+		    	writeToMessageBoard("Cannot start server on port " + port + ", please choose another one.","SYSTEM");
+		    }    
+    	} 
+    	catch (Exception e) {
+    	}
     }//end of startAndromeServer
     
     /**
@@ -307,6 +353,12 @@ public class AChatActivity extends Activity {
         }
     }//end of AndromeServer class
     
+    /**
+     * Create separate thread for each request.
+     * Can be further developed to support multiple clients.
+     * @author Chen Deng
+     *
+     */
     public static class AndromeServerHandler extends Thread {
     	private BufferedReader in;
     	private Socket socket;
@@ -350,7 +402,8 @@ public class AChatActivity extends Activity {
     	    	catch (Exception ex){}
     	    }
     		
-    		// "__req" is empty request
+    		// "__req" is empty request. Chrome extension send empty request periodically in order to
+    		// retrieve message stored in android side message buffer.
     		if(!incomingMsg.equals("__req")){
     			if(incomingMsg.equals("__connection_request")){
     	    		inputMsg = "Connection established with server " + ipAddress + ":" + port;
