@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 Chen Deng    Part of Androme-Vision Project
+ * Copyright 2011	Chen Deng
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,6 +32,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -75,12 +76,13 @@ public class AChatActivity extends Activity {
 	private static String ipAddress;
     private static String inputMsg = "";
     private static int port = 8080;
+    private static boolean hasWiFi = false;
     private static final int DIALOG_ID_NOWIFI = 0;
-    private static final int DIALOG_ID_HELP = 1;
-    private static final int DIALOG_ID_CHANGEPORT = 2;
-    private static final int DIALOG_ID_EXIT = 3;
-    private static final int DIALOG_ID_INVALIDPORT = 4;
+    private static final int DIALOG_ID_CHANGEPORT = 1;
+    private static final int DIALOG_ID_EXIT = 2;
+    private static final int DIALOG_ID_INVALIDPORT = 3;
     private static final int MSGBUFFER_SIZE = 4096;
+    private static boolean fromWiFiSettings = false; 
     
     /** Called when the activity is first created. */
     @Override
@@ -101,40 +103,62 @@ public class AChatActivity extends Activity {
         try{
         	startAndromeServer(port);
         }
-        catch(Exception e){
-        }
+        catch(Exception e){}
         
         send.setOnClickListener(new OnClickListener(){
-        	public void onClick(View arg0){
-        		if(!message.getText().toString().equals("")){
-	        		inputMsg += message.getText();
-	        		writeToMessageBoard(message.getText().toString(), "ME");
-	        		message.setText("");
+        	public void onClick(View v){
+        		try{
+	        		if(!message.getText().toString().equals("")){
+		        		inputMsg += message.getText();
+		        		writeToMessageBoard(message.getText().toString(), "ME");
+		        		message.setText("");
+	        		}
         		}
+	        	catch(Exception e){}
         	}
         });
         
         message.setOnKeyListener(new OnKeyListener(){
         	public boolean onKey(View v, int keyCode, KeyEvent event) {
-        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
-        			if(!message.getText().toString().equals("")){
-    	        		inputMsg += message.getText();
-    	        		writeToMessageBoard(message.getText().toString(), "ME");
-    	        		message.setText("");
-            		}
-            		return true;
+        		try{
+	        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+	        			if(!message.getText().toString().equals("")){
+	    	        		inputMsg += message.getText();
+	    	        		writeToMessageBoard(message.getText().toString(), "ME");
+	    	        		message.setText("");
+	            		}
+	            		return true;
+	        		}
         		}
-        		return false;
+	        	catch(Exception e){}
+	        	return false;
+        	}
+        });
+        
+        help.setOnClickListener(new View.OnClickListener() {
+        	public void onClick(View v) {
+        		try{
+        			Intent browserIntent = new Intent("android.intent.action.VIEW", Uri.parse("http://code.google.com/p/androme-vision/wiki/AChatManual?ts=1304189102&updated=AChatManual"));
+        			startActivity(browserIntent);
+        		}
+        		catch(Exception e){}
         	}
         });
         
         changePort.setOnClickListener(new View.OnClickListener() {
         	public void onClick(View v) {
-                showDialog(DIALOG_ID_CHANGEPORT);
+                try{
+                	showDialog(DIALOG_ID_CHANGEPORT);
+                }
+                catch(Exception e){}
             }
         });
-        link.setMovementMethod(LinkMovementMethod.getInstance());
-        link.setText(Html.fromHtml("<a href=\"http://code.google.com/p/androme-vision/\">Androme-Vision Project</a>"));
+        
+        try{
+        	link.setMovementMethod(LinkMovementMethod.getInstance());
+        	link.setText(Html.fromHtml("<a href=\"http://code.google.com/p/androme-vision/\">Androme-Vision Project</a>"));
+        }
+        catch(Exception e){}
         
     }//end of onCreate()
     
@@ -142,10 +166,14 @@ public class AChatActivity extends Activity {
      * msgHandler is used by inner classes to access messageBoard component.
      */
     final static Handler msgHandler = new Handler() {
-		@Override
+		
+    	@Override
 		public void handleMessage(Message msg) {
-			Bundle b = msg.getData();
-			writeToMessageBoard(b.getString("msg"), "");
+    		try{
+				Bundle b = msg.getData();
+				writeToMessageBoard(b.getString("msg"), b.getString("user"));
+    		}
+    		catch(Exception e){}
 		}
     };
     
@@ -162,13 +190,27 @@ public class AChatActivity extends Activity {
         stopAndromeServer();
     }
     
+    @Override
+    protected void onResume() {
+    	super.onResume();
+    	try{
+	    	if(hasWiFi == true && fromWiFiSettings == false){
+	    		checkWiFi();
+	    	}
+	    	else{
+	    		startAndromeServer(port);
+	    		fromWiFiSettings = true;
+	    	}
+    	}
+    	catch(Exception e){}
+    }
+    
     /**
-     * Contains three dialogs:
-     * 	0. no wifi alert 
-     * 	1. help	message
-     * 	2. change port prompt
-     * 	3. exit	confirmation
-     * 	4. invalid port number alert
+     * Contains five dialogs:
+     * 	0. no Wi-Fi alert 
+     * 	1. change port prompt
+     * 	2. exit	confirmation
+     * 	3. invalid port number alert
      */
     @Override
     protected Dialog onCreateDialog(int id) {
@@ -179,34 +221,38 @@ public class AChatActivity extends Activity {
 
         case DIALOG_ID_NOWIFI:
         	builder = new AlertDialog.Builder(this);
-        	builder.setTitle("Error")
-        		   .setMessage("Please connect to a WIFI-network, then click Change Port.")
-        		   .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        	builder.setTitle(" Alert")
+        		   .setCancelable(false)
+        		   .setMessage("Wi-Fi network unavailable.")
+        		   .setPositiveButton("Wi-Fi settings", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	        	   startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
-        	        	   
+        	        	   fromWiFiSettings = true;
+        	        	   startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));   
         	           }
-        		   });
+        		   })
+        		   .setNeutralButton("Retry", new DialogInterface.OnClickListener() {
+        			   public void onClick(DialogInterface dialog, int id) {
+        					   showDialog(DIALOG_ID_CHANGEPORT);
+        			   }
+        		   })
+        		   .setNegativeButton("Quit A-Chat", new DialogInterface.OnClickListener() {
+        			   public void onClick(DialogInterface dialog, int id) {
+        				   AChatActivity.this.finish();
+        			   }
+        		   });	   
         	alert = builder.create();
         	return alert;
         	
-        case DIALOG_ID_HELP:
-        	builder = new AlertDialog.Builder(this);
-        	builder.setTitle("How to use")
-        		   .setMessage("Please connect to a WIFI-network, then click Change Port.")
-        		   .setPositiveButton("OK", null);
-        	alert = builder.create();
-        	return alert;	
-        
         case DIALOG_ID_CHANGEPORT:
         	builder = new AlertDialog.Builder(this);
         	
         	final EditText newPort = new EditText(this);
         	newPort.setSingleLine(true);
         	newPort.setInputType(InputType.TYPE_CLASS_NUMBER);
+        	newPort.setText(port+"");
         	
         	builder.setMessage("Please enter the new port: ")
-        	       .setCancelable(true)
+        	       .setCancelable(false)
         	       .setView(newPort)
         	       .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
@@ -227,7 +273,12 @@ public class AChatActivity extends Activity {
         	       })
         	       .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	                dialog.cancel();
+        	        	   if(checkWiFi() != 0){
+        	        		   dialog.cancel();
+        	        	   }
+        	        	   else{
+        	        		   showDialog(DIALOG_ID_NOWIFI);
+        	        	   }
         	           }
         	       });
         	alert = builder.create();
@@ -252,7 +303,7 @@ public class AChatActivity extends Activity {
         
         case DIALOG_ID_INVALIDPORT:
         	builder = new AlertDialog.Builder(this);
-        	builder.setTitle("Error")
+        	builder.setTitle(" Alert")
         		   .setMessage("Range of valid port number is 1024~65535.")
         		   .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
@@ -282,29 +333,39 @@ public class AChatActivity extends Activity {
     	scroll.fullScroll(ScrollView.FOCUS_UP);
     }
     
-    private void startAndromeServer(int port) {
-    	try {
+    public int checkWiFi(){
+    	int ip=0;
+    	try{
     		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
     		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
     		
-    		int ip_int = wifiInfo.getIpAddress();
-    		ipAddress = ((ip_int       ) & 0xFF) + "." +
-            			((ip_int >>  8 ) & 0xFF) + "." +
-            			((ip_int >> 16 ) & 0xFF) + "." +
-            			( ip_int >> 24   & 0xFF);
-
     		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
+    			hasWiFi = false;
     			showDialog(DIALOG_ID_NOWIFI);
     		}
-            
-		    try{
-		    	server = new AndromeServer(ipAddress,port);
-		    	server.start();
-		    	writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
-		    }
-		    catch(Exception e){
-		    	writeToMessageBoard("Cannot start server on port " + port + ", please choose another one.","SYSTEM");
-		    }    
+    		else{
+    			hasWiFi = true;
+    			ip = wifiInfo.getIpAddress();
+    		}
+    	}
+    	catch(Exception e){
+    	}
+    	return ip;
+    }
+    
+    private void startAndromeServer(int port) {
+    	try {
+    		int ip_int = checkWiFi();
+    		if(ip_int != 0){
+	    		ipAddress = ((ip_int       ) & 0xFF) + "." +
+	            			((ip_int >>  8 ) & 0xFF) + "." +
+	            			((ip_int >> 16 ) & 0xFF) + "." +
+	            			( ip_int >> 24   & 0xFF);
+	    		
+			    server = new AndromeServer(ipAddress,port);
+			    server.start();
+			    writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");   
+    		}
     	} 
     	catch (Exception e) {
     	}
@@ -367,23 +428,20 @@ public class AChatActivity extends Activity {
     		socket = s;
     	}
     	
-    	private void send(String s) {
+    	private void send(String s, String u) {
     		Message msg = new Message();
     		Bundle b = new Bundle();
     		b.putString("msg", s);
+    		b.putString("user", u);
     		msg.setData(b);
     		msgHandler.sendMessage(msg);
     	}
     	
     	public void run() {
     		String incomingMsg = "";
-    		// check client is using Chrome extension or browser only
-    		boolean isChrome = true;
-    		
     		try{
     			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     			while (true) {
-    				isChrome = true;
     				String str = in.readLine().trim();
     				if (str.equals("")) {
     					break;
@@ -402,23 +460,35 @@ public class AChatActivity extends Activity {
     	    	catch (Exception ex){}
     	    }
     		
-    		// "__req" is empty request. Chrome extension send empty request periodically in order to
-    		// retrieve message stored in android side message buffer.
-    		if(!incomingMsg.equals("__req")){
-    			if(incomingMsg.equals("__connection_request")){
-    	    		inputMsg = "Connection established with server " + ipAddress + ":" + port;
-    	    	}
-    	    	else{
-    	    		// More illegal-character-handling should be implemented here
-    	    		incomingMsg = incomingMsg.replaceAll("%20", " ");
-    	    		
-    	    		send("CHROME: " + incomingMsg);
-    	    	}
-    	    }
-    		
     		try {
-    			BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(inputMsg.getBytes()));
-    			inputMsg = "";
+    			BufferedInputStream in;
+	    		// request sent from google extension
+    			// using __req_ is not safe. Need to find another way distinguishing these two.
+	    		if(incomingMsg.startsWith("__req_")){
+	    			// get the actual message
+	    			incomingMsg = incomingMsg.substring(6);
+	    			if(incomingMsg.equals("__connection_request")){
+	    	    		inputMsg = "Connection established with server " + ipAddress + ":" + port;
+	    	    	}
+	    			// Chrome extension send empty request periodically in order to
+	        		// retrieve message stored in android side message buffer through response.
+	    	    	else if(!incomingMsg.equals("")){
+	    	    		// More illegal-character-handling should be implemented here
+	    	    		incomingMsg = incomingMsg.replaceAll("%20", " ");
+	    	    		
+	    	    		send(incomingMsg, "CHROME");
+	    	    	}
+	    	    
+    		
+	    			in = new BufferedInputStream(new ByteArrayInputStream(inputMsg.getBytes()));
+	    			inputMsg = "";
+	    		}
+	    		// request sent from normal browser window
+	    		else{
+	    			String getApp = "<a href=\"http://www.google.com\">Get A-Chat from Web Store to experience all features.</a>";
+	    			in = new BufferedInputStream(new ByteArrayInputStream(getApp.getBytes()));
+	    		}
+	    		
     			BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
     			ByteArrayOutputStream tempOut = new ByteArrayOutputStream();
     			
