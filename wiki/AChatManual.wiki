@@ -1,4 +1,6 @@
 #labels Phase-Deploy,Phase-Requirements,A-Chat
+[https://lh6.googleusercontent.com/-S5CFYU0f1vg/Tby5uQlAO5I/AAAAAAAAABY/EET9xEdNrSA/s288/promo_big.jpg
+
 = Introduction =
 
 Instructions on how to use A-Chat.
