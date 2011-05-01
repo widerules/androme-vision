@@ -20,7 +20,9 @@ Instructions on how to use A-Chat.
 == How to use ==
 
 ==== Android + Chrome ====
- # Download and install A-Chat(Android) client from Android Market.[https://market.android.com/details?id=com.androme.achat Link]
+ # Download and install A-Chat(Android) client from Android Market.[https://market.android.com/details?id=com.androme.achat Link]         
+
+[https://lh5.googleusercontent.com/_xIcIwFYzRDs/Tby9Q15JCSI/AAAAAAAAAB4/fQrvClIvwcY/s128/achatQR.png]
  # Get A-Chat(Chrome) client from Web Store. [https://chrome.google.com/webstore/detail/kfhddchcbfladdbnjcbfefmdamoghnmn Link]
  # Launch A-Chat(Android) on Android device.
        * Connection to Wi-Fi network required.
