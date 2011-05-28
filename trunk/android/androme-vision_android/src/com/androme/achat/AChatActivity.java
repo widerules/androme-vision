@@ -25,7 +25,6 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.LinkedList;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -158,8 +157,7 @@ public class AChatActivity extends Activity {
         	link.setMovementMethod(LinkMovementMethod.getInstance());
         	link.setText(Html.fromHtml("<a href=\"http://code.google.com/p/androme-vision/\">Androme-Vision Project</a>"));
         }
-        catch(Exception e){}
-        
+        catch(Exception e){} 
     }//end of onCreate()
     
     /**
@@ -242,10 +240,10 @@ public class AChatActivity extends Activity {
         		   });	   
         	alert = builder.create();
         	return alert;
-        	
+        }
+        switch (id) {	
         case DIALOG_ID_CHANGEPORT:
         	builder = new AlertDialog.Builder(this);
-        	
         	final EditText newPort = new EditText(this);
         	newPort.setSingleLine(true);
         	newPort.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -311,8 +309,7 @@ public class AChatActivity extends Activity {
        	           }
        	       });
         	alert = builder.create();
-        	return alert;
-        	
+        	return alert;	
         }
         return null;
     }//end of onCreateDialog
@@ -380,8 +377,10 @@ public class AChatActivity extends Activity {
     	
     	private ServerSocket listener = null;
     	private boolean running = true;
-    	// ClientList is used for handling multiple connections simultaneously.
-    	public static LinkedList<Socket> clientList = new LinkedList<Socket>();
+    	private BufferedReader inBufReader;
+    	BufferedInputStream inBufInputStream;
+    	Socket clientSocket;
+    	String incomingMsg;
     	
     	public AndromeServer(String ip, int port) throws IOException {
     		super();
@@ -393,10 +392,11 @@ public class AChatActivity extends Activity {
     	public void run() {
     		while( running ) {
     			try {
-    				Socket client = listener.accept();
-    				new AndromeServerHandler(client).start();
-    				clientList.add(client);
-    			} catch (Exception e) {
+    				clientSocket = listener.accept();
+    				processRequest();
+    				sendResponse();
+    			} 
+    			catch (Exception e) {
     			}
     		}
     	}
@@ -405,27 +405,9 @@ public class AChatActivity extends Activity {
     		running = false;
     		try {
     			listener.close();
-    		} catch (Exception e) {
+    		} 
+    		catch (Exception e) {
     		}
-    	}
-    	
-    	public static void remove(Socket s) {
-            clientList.remove(s);      
-        }
-    }//end of AndromeServer class
-    
-    /**
-     * Create separate thread for each request.
-     * Can be further developed to support multiple clients.
-     * @author Chen Deng
-     *
-     */
-    public static class AndromeServerHandler extends Thread {
-    	private BufferedReader in;
-    	private Socket socket;
-    	
-    	AndromeServerHandler(Socket s) {
-    		socket = s;
     	}
     	
     	private void send(String s, String u) {
@@ -437,33 +419,22 @@ public class AChatActivity extends Activity {
     		msgHandler.sendMessage(msg);
     	}
     	
-    	public void run() {
-    		String incomingMsg = "";
+    	// Analyze input stream and strip off HTTP header
+    	public void processRequest() {
+    		incomingMsg = "";
     		try{
-    			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-    			while (true) {
-    				String str = in.readLine().trim();
-    				if (str.equals("")) {
-    					break;
-    				}
-    				if (str.substring(0, 3).equals("GET")) {
+    			inBufReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+    			String str = inBufReader.readLine().trim();
+    			if (!str.equals("")) {
+					if (str.substring(0, 3).equals("GET")) {
     					int endPoint = str.indexOf(" HTTP/");
     					incomingMsg = str.substring(5,endPoint);
-    				}
-    			}	
-    		}
-    		catch(Exception e){
-    			AndromeServer.remove(socket);
-    	    	try{
-    	    		socket.close();
-    			}
-    	    	catch (Exception ex){}
-    	    }
-    		
-    		try {
-    			BufferedInputStream in;
-	    		// request sent from google extension
-    			// using __req_ is not safe. Need to find another way distinguishing these two.
+					}
+				}	
+
+	    		// request was sent from google extension
+    			// using __req_ is not safe, since it can be a legal user input.
+    			// Need to find another way to distinguish url request and extension request.
 	    		if(incomingMsg.startsWith("__req_")){
 	    			// get the actual message
 	    			incomingMsg = incomingMsg.substring(6);
@@ -478,24 +449,33 @@ public class AChatActivity extends Activity {
 	    	    		
 	    	    		send(incomingMsg, "CHROME");
 	    	    	}
-	    	    
-    		
-	    			in = new BufferedInputStream(new ByteArrayInputStream(inputMsg.getBytes()));
+
+	    			inBufInputStream = new BufferedInputStream(new ByteArrayInputStream(inputMsg.getBytes()));
 	    			inputMsg = "";
 	    		}
 	    		// request sent from normal browser window
 	    		else{
 	    			String getApp = "<a href=\"https://chrome.google.com/webstore/detail/kfhddchcbfladdbnjcbfefmdamoghnmn\">Get A-Chat from Web Store to experience all features.</a>";
-	    			in = new BufferedInputStream(new ByteArrayInputStream(getApp.getBytes()));
+	    			inBufInputStream = new BufferedInputStream(new ByteArrayInputStream(getApp.getBytes()));
 	    		}
-	    		
-    			BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
+    		}
+    		catch(Exception e){
+    	    	try{
+    	    		clientSocket.close();
+    			}
+    	    	catch (Exception ex){}
+    	    }
+    	} //end of processRequest
+    	
+    	private void sendResponse(){		
+	    	try{
+    			BufferedOutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
     			ByteArrayOutputStream tempOut = new ByteArrayOutputStream();
     			
     			byte[] buf = new byte[MSGBUFFER_SIZE];
     			int count = 0;
     			
-    			while ((count = in.read(buf)) != -1){
+    			while ((count = inBufInputStream.read(buf)) != -1){
     				tempOut.write(buf, 0, count);
     			}
     			
@@ -506,13 +486,16 @@ public class AChatActivity extends Activity {
     			// So far as I know, the message only get sent out upon the closure of socket.
     			// If there is an other way round, maybe the socket connection can be kept open, 
     			// which will greatly improve performance.
-    			AndromeServer.remove(socket);
-    			socket.close();
+    			clientSocket.close();
     		}
     		catch(Exception e){
-    		}	
-    	}//end of run
- 	
-    }//end of AndromeServerHandler class
+    	    	try{
+    	    		clientSocket.close();
+    			}
+    	    	catch (Exception ex){}
+    	    }
+    	}//end of sendResponse
+    		
+    }//end of AndromeServer class
     
 }//end of AChatActivity class
