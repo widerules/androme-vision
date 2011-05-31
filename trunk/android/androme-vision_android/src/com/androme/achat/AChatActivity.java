@@ -29,14 +29,18 @@ import java.net.Socket;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.provider.Settings;
 import android.text.Html;
@@ -51,6 +55,8 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.androme.achat.myService.LocalBinder;
+
 /**
  * AChatActivity is the only activity in this application.
  * It contains two inner classes: AndromeServer and AndromeServerHandler.
@@ -62,7 +68,9 @@ import android.widget.TextView;
  */
 public class AChatActivity extends Activity {
 	
-	private AndromeServer server;
+	private Intent intent;
+	private myService mService;
+	private boolean mBound = false;
 	
 	private Button send;
 	private Button help;
@@ -72,15 +80,11 @@ public class AChatActivity extends Activity {
 	private static TextView link;
 	private static ScrollView scroll;
     
-	private static String ipAddress;
     private static String inputMsg = "";
-    private static int port = 8080;
-    private static boolean hasWiFi = false;
     private static final int DIALOG_ID_NOWIFI = 0;
     private static final int DIALOG_ID_CHANGEPORT = 1;
     private static final int DIALOG_ID_EXIT = 2;
     private static final int DIALOG_ID_INVALIDPORT = 3;
-    private static final int MSGBUFFER_SIZE = 4096;
     private static boolean fromWiFiSettings = false; 
     
     /** Called when the activity is first created. */
@@ -100,10 +104,12 @@ public class AChatActivity extends Activity {
         
         // start server on default port upon application entry
         try{
-        	startAndromeServer(port);
+        	intent = new Intent(AChatActivity.this, myService.class);
+    		startService(intent);
+    		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }
         catch(Exception e){}
-        
+
         send.setOnClickListener(new OnClickListener(){
         	public void onClick(View v){
         		try{
@@ -185,7 +191,9 @@ public class AChatActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopAndromeServer();
+        //intent = new Intent(AChatActivity.this, myService.class);
+        unbindService(mConnection);
+		stopService(intent);
     }
     
     @Override
@@ -202,6 +210,23 @@ public class AChatActivity extends Activity {
     	}
     	catch(Exception e){}
     }
+    
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            LocalBinder binder = (LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
     
     /**
      * Contains five dialogs:
@@ -314,13 +339,6 @@ public class AChatActivity extends Activity {
         return null;
     }//end of onCreateDialog
     
-    private void stopAndromeServer() {
-    	if( server != null ) {
-    		server.stopServer();
-    		server.interrupt();
-    	}
-    }
-    
     public static void writeToMessageBoard( String s , String user) {
     	if(!user.equals("")){
     		user += ": ";
@@ -329,173 +347,5 @@ public class AChatActivity extends Activity {
     	// always tracks latest message
     	scroll.fullScroll(ScrollView.FOCUS_UP);
     }
-    
-    public int checkWiFi(){
-    	int ip=0;
-    	try{
-    		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-    		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-    		
-    		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
-    			hasWiFi = false;
-    			showDialog(DIALOG_ID_NOWIFI);
-    		}
-    		else{
-    			hasWiFi = true;
-    			ip = wifiInfo.getIpAddress();
-    		}
-    	}
-    	catch(Exception e){
-    	}
-    	return ip;
-    }
-    
-    private void startAndromeServer(int port) {
-    	try {
-    		int ip_int = checkWiFi();
-    		if(ip_int != 0){
-	    		ipAddress = ((ip_int       ) & 0xFF) + "." +
-	            			((ip_int >>  8 ) & 0xFF) + "." +
-	            			((ip_int >> 16 ) & 0xFF) + "." +
-	            			( ip_int >> 24   & 0xFF);
-	    		
-			    server = new AndromeServer(ipAddress,port);
-			    server.start();
-			    writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");   
-    		}
-    	} 
-    	catch (Exception e) {
-    	}
-    }//end of startAndromeServer
-    
-    /**
-     * Inner class. For easier access to UI components
-     * Create an HTTP server in an separate thread so that UI can stay responsive
-     * @author Chen Deng
-     */
-    public static class AndromeServer extends Thread {
-    	
-    	private ServerSocket listener = null;
-    	private boolean running = true;
-    	private BufferedReader inBufReader;
-    	BufferedInputStream inBufInputStream;
-    	Socket clientSocket;
-    	String incomingMsg;
-    	
-    	public AndromeServer(String ip, int port) throws IOException {
-    		super();
-    		InetAddress ipadr = InetAddress.getByName(ip);
-    		listener = new ServerSocket(port,0,ipadr);
-    	}
-    	
-    	@Override
-    	public void run() {
-    		while( running ) {
-    			try {
-    				clientSocket = listener.accept();
-    				processRequest();
-    				sendResponse();
-    			} 
-    			catch (Exception e) {
-    			}
-    		}
-    	}
-    	
-    	public void stopServer() {
-    		running = false;
-    		try {
-    			listener.close();
-    		} 
-    		catch (Exception e) {
-    		}
-    	}
-    	
-    	private void send(String s, String u) {
-    		Message msg = new Message();
-    		Bundle b = new Bundle();
-    		b.putString("msg", s);
-    		b.putString("user", u);
-    		msg.setData(b);
-    		msgHandler.sendMessage(msg);
-    	}
-    	
-    	// Analyze input stream and strip off HTTP header
-    	public void processRequest() {
-    		incomingMsg = "";
-    		try{
-    			inBufReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-    			String str = inBufReader.readLine().trim();
-    			if (!str.equals("")) {
-					if (str.substring(0, 3).equals("GET")) {
-    					int endPoint = str.indexOf(" HTTP/");
-    					incomingMsg = str.substring(5,endPoint);
-					}
-				}	
-
-	    		// request was sent from google extension
-    			// using __req_ is not safe, since it can be a legal user input.
-    			// Need to find another way to distinguish url request and extension request.
-	    		if(incomingMsg.startsWith("__req_")){
-	    			// get the actual message
-	    			incomingMsg = incomingMsg.substring(6);
-	    			if(incomingMsg.equals("__connection_request")){
-	    	    		inputMsg = "Connection established with server " + ipAddress + ":" + port;
-	    	    	}
-	    			// Chrome extension send empty request periodically in order to
-	        		// retrieve message stored in android side message buffer through response.
-	    	    	else if(!incomingMsg.equals("")){
-	    	    		// More illegal-character-handling should be implemented here
-	    	    		incomingMsg = incomingMsg.replaceAll("%20", " ");
-	    	    		
-	    	    		send(incomingMsg, "CHROME");
-	    	    	}
-
-	    			inBufInputStream = new BufferedInputStream(new ByteArrayInputStream(inputMsg.getBytes()));
-	    			inputMsg = "";
-	    		}
-	    		// request sent from normal browser window
-	    		else{
-	    			String getApp = "<a href=\"https://chrome.google.com/webstore/detail/kfhddchcbfladdbnjcbfefmdamoghnmn\">Get A-Chat from Web Store to experience all features.</a>";
-	    			inBufInputStream = new BufferedInputStream(new ByteArrayInputStream(getApp.getBytes()));
-	    		}
-    		}
-    		catch(Exception e){
-    	    	try{
-    	    		clientSocket.close();
-    			}
-    	    	catch (Exception ex){}
-    	    }
-    	} //end of processRequest
-    	
-    	private void sendResponse(){		
-	    	try{
-    			BufferedOutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
-    			ByteArrayOutputStream tempOut = new ByteArrayOutputStream();
-    			
-    			byte[] buf = new byte[MSGBUFFER_SIZE];
-    			int count = 0;
-    			
-    			while ((count = inBufInputStream.read(buf)) != -1){
-    				tempOut.write(buf, 0, count);
-    			}
-    			
-    			tempOut.flush();
-    			out.write(tempOut.toByteArray());
-    			out.flush();
-    			
-    			// So far as I know, the message only get sent out upon the closure of socket.
-    			// If there is an other way round, maybe the socket connection can be kept open, 
-    			// which will greatly improve performance.
-    			clientSocket.close();
-    		}
-    		catch(Exception e){
-    	    	try{
-    	    		clientSocket.close();
-    			}
-    	    	catch (Exception ex){}
-    	    }
-    	}//end of sendResponse
-    		
-    }//end of AndromeServer class
     
 }//end of AChatActivity class
