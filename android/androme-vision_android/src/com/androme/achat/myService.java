@@ -24,15 +24,16 @@ import android.os.Message;
 import android.widget.Toast;
 
 public class myService extends Service {
-	private final IBinder mBinder = new LocalBinder();
-	private boolean serviceOn = false;
-	private static Handler msgHandler = null;
+	protected final IBinder mBinder = new LocalBinder();
+	protected boolean serviceOn = false;
+	protected static Handler msgHandler = null;
 	public static final int START_STICKY = 1;
-    private static final int MSGBUFFER_SIZE = 4096;
-    private AndromeServer server = null;
-    private static boolean hasWiFi = false;
-    private static String ipAddress;
-    private static int port = 8080;
+    protected static final int MSGBUFFER_SIZE = 4096;
+    protected AndromeServer server = null;
+    protected static boolean hasWiFi = false;
+    protected static String ipAddress;
+    protected static int port = 8080;
+    protected static String inputMsg = "";
     
 	
 	class ServerThread implements Runnable {
@@ -60,10 +61,11 @@ public class myService extends Service {
 		msgHandler = mHandler;
 	}
 	
-	public static void send(int i) {
+	protected void send(String s, String u) {
 		Message msg = new Message();
 		Bundle b = new Bundle();
-		b.putInt("num", i);
+		b.putString("msg", s);
+		b.putString("user", u);
 		msg.setData(b);
 		msgHandler.sendMessage(msg);
 	}
@@ -89,7 +91,7 @@ public class myService extends Service {
 	  serviceOn = false;
 	}
 	
-	private void startAndromeServer(int port) {
+	protected void startAndromeServer(int port) {
     	try {
     		int ip_int = checkWiFi();
     		if(ip_int != 0){
@@ -100,14 +102,14 @@ public class myService extends Service {
 	    		
 			    server = new AndromeServer(ipAddress,port);
 			    server.start();
-			    writeToMessageBoard("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");   
+			    send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");   
     		}
     	} 
     	catch (Exception e) {
     	}
     }//end of startAndromeServer
 	
-	private void stopAndromeServer() {
+	protected void stopAndromeServer() {
 		if( server != null ) {
 	    		server.stopServer();
 	    		server.interrupt();
@@ -122,7 +124,7 @@ public class myService extends Service {
     		
     		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
     			hasWiFi = false;
-    			showDialog(DIALOG_ID_NOWIFI);
+    			//showDialog(DIALOG_ID_NOWIFI);
     		}
     		else{
     			hasWiFi = true;
@@ -141,9 +143,9 @@ public class myService extends Service {
      */
     public static class AndromeServer extends Thread {
     	
-    	private ServerSocket listener = null;
-    	private boolean running = true;
-    	private BufferedReader inBufReader;
+    	protected ServerSocket listener = null;
+    	protected boolean running = true;
+    	protected BufferedReader inBufReader;
     	BufferedInputStream inBufInputStream;
     	Socket clientSocket;
     	String incomingMsg;
@@ -176,7 +178,7 @@ public class myService extends Service {
     		}
     	}
     	
-    	private void send(String s, String u) {
+    	protected void send(String s, String u) {
     		Message msg = new Message();
     		Bundle b = new Bundle();
     		b.putString("msg", s);
@@ -233,7 +235,7 @@ public class myService extends Service {
     	    }
     	} //end of processRequest
     	
-    	private void sendResponse(){		
+    	protected void sendResponse(){		
 	    	try{
     			BufferedOutputStream out = new BufferedOutputStream(clientSocket.getOutputStream());
     			ByteArrayOutputStream tempOut = new ByteArrayOutputStream();

@@ -80,7 +80,6 @@ public class AChatActivity extends Activity {
 	private static TextView link;
 	private static ScrollView scroll;
     
-    private static String inputMsg = "";
     private static final int DIALOG_ID_NOWIFI = 0;
     private static final int DIALOG_ID_CHANGEPORT = 1;
     private static final int DIALOG_ID_EXIT = 2;
@@ -114,7 +113,7 @@ public class AChatActivity extends Activity {
         	public void onClick(View v){
         		try{
 	        		if(!message.getText().toString().equals("")){
-		        		inputMsg += message.getText();
+		        		mService.inputMsg += message.getText();
 		        		writeToMessageBoard(message.getText().toString(), "ME");
 		        		message.setText("");
 	        		}
@@ -128,7 +127,7 @@ public class AChatActivity extends Activity {
         		try{
 	        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
 	        			if(!message.getText().toString().equals("")){
-	    	        		inputMsg += message.getText();
+	        				mService.inputMsg += message.getText();
 	    	        		writeToMessageBoard(message.getText().toString(), "ME");
 	    	        		message.setText("");
 	            		}
@@ -200,11 +199,11 @@ public class AChatActivity extends Activity {
     protected void onResume() {
     	super.onResume();
     	try{
-	    	if(hasWiFi == true && fromWiFiSettings == false){
-	    		checkWiFi();
+	    	if(mService.hasWiFi == true && fromWiFiSettings == false){
+	    		mService.checkWiFi();
 	    	}
 	    	else{
-	    		startAndromeServer(port);
+	    		mService.startAndromeServer(mService.port);
 	    		fromWiFiSettings = true;
 	    	}
     	}
@@ -272,21 +271,21 @@ public class AChatActivity extends Activity {
         	final EditText newPort = new EditText(this);
         	newPort.setSingleLine(true);
         	newPort.setInputType(InputType.TYPE_CLASS_NUMBER);
-        	newPort.setText(port+"");
+        	newPort.setText(mService.port+"");
         	
         	builder.setMessage("Please enter the new port: ")
         	       .setCancelable(false)
         	       .setView(newPort)
         	       .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	        	   stopAndromeServer();
+        	        	   mService.stopAndromeServer();
         	        	   try{
-        	        		   port = Integer.parseInt(newPort.getText().toString());
-        	        		   if(port < 1024 || port > 65535){
+        	        		   mService.port = Integer.parseInt(newPort.getText().toString());
+        	        		   if(mService.port < 1024 || mService.port > 65535){
         	        			   showDialog(DIALOG_ID_INVALIDPORT);
         	        		   }
         	        		   else{
-        	        			   startAndromeServer(new Integer(port));
+        	        			   mService.startAndromeServer(new Integer(mService.port));
         	        		   }
         	        	   }
         	        	   catch(Exception e){
@@ -296,7 +295,7 @@ public class AChatActivity extends Activity {
         	       })
         	       .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	        	   if(checkWiFi() != 0){
+        	        	   if(mService.checkWiFi() != 0){
         	        		   dialog.cancel();
         	        	   }
         	        	   else{
