@@ -106,6 +106,12 @@ public class AChatActivity extends Activity {
         	intent = new Intent(AChatActivity.this, myService.class);
     		startService(intent);
     		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    		if(mBound){
+    			mService.setHandler(msgHandler);
+    		}
+    		else{
+    			writeToMessageBoard("unbound", "sys");
+    		}
         }
         catch(Exception e){}
 
