@@ -15,17 +15,6 @@
 
 package com.androme.achat;
  
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -35,9 +24,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
-import android.net.wifi.SupplicantState;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -55,7 +41,7 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.androme.achat.myService.LocalBinder;
+import com.androme.achat.MyService.LocalBinder;
 
 /**
  * AChatActivity is the only activity in this application.
@@ -69,7 +55,7 @@ import com.androme.achat.myService.LocalBinder;
 public class AChatActivity extends Activity {
 	
 	private Intent intent;
-	private myService mService;
+	private MyService mService;
 	private boolean mBound = false;
 	
 	private Button send;
@@ -103,7 +89,7 @@ public class AChatActivity extends Activity {
         
         // start server on default port upon application entry
         try{
-        	intent = new Intent(AChatActivity.this, myService.class);
+        	intent = new Intent(this, MyService.class);
     		startService(intent);
     		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     		if(mBound){
@@ -222,7 +208,7 @@ public class AChatActivity extends Activity {
         public void onServiceConnected(ComponentName className,
                 IBinder service) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
-            LocalBinder binder = (LocalBinder) service;
+            LocalBinder binder = (MyService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
         }
