@@ -21,7 +21,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.widget.Toast;
 
 public class MyService extends Service {
 	protected final IBinder mBinder = new LocalBinder();
@@ -34,18 +33,6 @@ public class MyService extends Service {
     protected static String ipAddress;
     protected static int port = 8080;
     protected static String inputMsg = "";
-    
-	
-	class ServerThread implements Runnable {
-		public void run() {
-			try {
-				
-			} 
-			catch (Exception e) {
-				
-			}
-		}
-	}
 	
 	public class LocalBinder extends Binder {
 		MyService getService() {
@@ -70,24 +57,20 @@ public class MyService extends Service {
 		msgHandler.sendMessage(msg);
 	}
 	
-	@Override
-	public void onCreate() {
-	    
-	}
-	
 	public int onStartCommand(Intent intent, int flags, int startId) { 
 	      serviceOn = true;
 	      //Runnable runnable = new ServerThread();
 	      //Thread thread = new Thread(runnable);
 	      //thread.start();
-	      startAndromeServer(port);
+	      
+	      //startAndromeServer(port);
+	      
 	      
 	      return START_STICKY;
 	}
 	
 	@Override
 	public void onDestroy() {
-	  Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show();
 	  serviceOn = false;
 	}
 	
