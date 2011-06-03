@@ -92,12 +92,6 @@ public class AChatActivity extends Activity {
         	intent = new Intent(this, MyService.class);
     		startService(intent);
     		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-    		if(mBound){
-    			mService.setHandler(msgHandler);
-    		}
-    		else{
-    			writeToMessageBoard("unbound", "sys");
-    		}
         }
         catch(Exception e){}
 
@@ -211,6 +205,7 @@ public class AChatActivity extends Activity {
             LocalBinder binder = (MyService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+    		mService.setHandler(msgHandler);
         }
 
         @Override
