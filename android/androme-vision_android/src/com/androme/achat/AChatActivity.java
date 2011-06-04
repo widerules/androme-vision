@@ -93,18 +93,27 @@ public class AChatActivity extends Activity {
     		startService(intent);
     		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         }
-        catch(Exception e){}
+        catch(Exception e){
+        	writeToMessageBoard("Service was not started or bounded normally.", "ERROR");
+        }
 
         send.setOnClickListener(new OnClickListener(){
         	public void onClick(View v){
         		try{
 	        		if(!message.getText().toString().equals("")){
-		        		mService.inputMsg += message.getText();
-		        		writeToMessageBoard(message.getText().toString(), "ME");
-		        		message.setText("");
+	        			if(mBound) {
+	        				MyService.inputMsg += message.getText();
+	        				writeToMessageBoard(message.getText().toString(), "ME");
+	        				message.setText("");
+	        			}
+	        			else {
+	        				writeToMessageBoard("Unbound to service.", "Error");
+	        			}
 	        		}
         		}
-	        	catch(Exception e){}
+	        	catch(Exception e){
+	        		writeToMessageBoard("Message was not sent normally.", "ERROR");
+	        	}
         	}
         });
         
@@ -113,14 +122,21 @@ public class AChatActivity extends Activity {
         		try{
 	        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
 	        			if(!message.getText().toString().equals("")){
-	        				mService.inputMsg += message.getText();
-	    	        		writeToMessageBoard(message.getText().toString(), "ME");
-	    	        		message.setText("");
+	        				if(mBound) {
+	        					MyService.inputMsg += message.getText();
+	        					writeToMessageBoard(message.getText().toString(), "ME");
+	        					message.setText("");
+	        				}
+	        				else {
+		        				writeToMessageBoard("Unbound to service.", "Error");
+		        			}
 	            		}
 	            		return true;
 	        		}
         		}
-	        	catch(Exception e){}
+	        	catch(Exception e){
+	        		writeToMessageBoard("Message was not sent normally.", "ERROR");
+	        	}
 	        	return false;
         	}
         });
@@ -131,7 +147,9 @@ public class AChatActivity extends Activity {
         			Intent browserIntent = new Intent("android.intent.action.VIEW", Uri.parse("http://code.google.com/p/androme-vision/wiki/AChatManual?ts=1304189102&updated=AChatManual"));
         			startActivity(browserIntent);
         		}
-        		catch(Exception e){}
+        		catch(Exception e){
+        			writeToMessageBoard("Browser was not launched normally.", "ERROR");
+        		}
         	}
         });
         
@@ -140,7 +158,9 @@ public class AChatActivity extends Activity {
                 try{
                 	showDialog(DIALOG_ID_CHANGEPORT);
                 }
-                catch(Exception e){}
+                catch(Exception e){
+                	writeToMessageBoard("Change port failed.", "ERROR");
+                }
             }
         });
         
@@ -148,19 +168,31 @@ public class AChatActivity extends Activity {
         	link.setMovementMethod(LinkMovementMethod.getInstance());
         	link.setText(Html.fromHtml("<a href=\"http://code.google.com/p/androme-vision/\">Androme-Vision Project</a>"));
         }
-        catch(Exception e){} 
+        catch(Exception e){
+        	writeToMessageBoard("Failed to prepare browser access.", "ERROR");
+        } 
     }//end of onCreate()
     
     /**
      * msgHandler is used by inner classes to access messageBoard component.
      */
-    final static Handler msgHandler = new Handler() {
+    final Handler msgHandler = new Handler() {
 		
     	@Override
 		public void handleMessage(Message msg) {
     		try{
 				Bundle b = msg.getData();
-				writeToMessageBoard(b.getString("msg"), b.getString("user"));
+				String message = b.getString("msg");
+				String user = b.getString("user");
+				// system information from service, instead of user input
+				if(user.equals("sys")) {
+					if(message.equals("DIALOG_ID_NOWIFI")) {
+						showDialog(DIALOG_ID_NOWIFI);
+					}
+				}
+				else{
+					writeToMessageBoard(b.getString("msg"), b.getString("user"));
+				}
     		}
     		catch(Exception e){}
 		}
@@ -176,41 +208,57 @@ public class AChatActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //intent = new Intent(AChatActivity.this, myService.class);
-        unbindService(mConnection);
-		stopService(intent);
+        try {
+        	unbindService(mConnection);
+        	stopService(intent);
+        }
+        catch(Exception e) {}
     }
     
     @Override
     protected void onResume() {
     	super.onResume();
     	try{
-	    	if(mService.hasWiFi == true && fromWiFiSettings == false){
+    		if(mBound) {
+    			writeToMessageBoard("Bound.", "Nice");
+    		}
+    		else {
+    			writeToMessageBoard("unBound.", "No good");
+    		}
+    		mService.checkWiFi();
+    		
+	    	if(MyService.hasWiFi == true && fromWiFiSettings == false){
+	    		writeToMessageBoard("Failed to check WiFi.", "ERROR111");
 	    		mService.checkWiFi();
 	    	}
 	    	else{
-	    		mService.startAndromeServer(mService.port);
+	    		writeToMessageBoard("Failed to check WiFi.", "ERROR222");
+	    		mService.startAndromeServer(MyService.port);
 	    		fromWiFiSettings = true;
 	    	}
     	}
-    	catch(Exception e){}
+    	catch(Exception e){
+    		writeToMessageBoard("Failed to check WiFi.", "ERROR");
+    	}
     }
     
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
-        public void onServiceConnected(ComponentName className,
-                IBinder service) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            LocalBinder binder = (MyService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-    		mService.setHandler(msgHandler);
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            try {
+            	LocalBinder binder = (MyService.LocalBinder) service;
+            	mService = binder.getService();
+            	mBound = true;
+            	mService.setHandler(msgHandler);
+            }
+            catch(Exception e) {}
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
+            mService.setHandler(null);
+        	mBound = false;
         }
     };
     
@@ -258,7 +306,7 @@ public class AChatActivity extends Activity {
         	final EditText newPort = new EditText(this);
         	newPort.setSingleLine(true);
         	newPort.setInputType(InputType.TYPE_CLASS_NUMBER);
-        	newPort.setText(mService.port+"");
+        	newPort.setText(MyService.port+"");
         	
         	builder.setMessage("Please enter the new port: ")
         	       .setCancelable(false)
@@ -267,12 +315,12 @@ public class AChatActivity extends Activity {
         	           public void onClick(DialogInterface dialog, int id) {
         	        	   mService.stopAndromeServer();
         	        	   try{
-        	        		   mService.port = Integer.parseInt(newPort.getText().toString());
-        	        		   if(mService.port < 1024 || mService.port > 65535){
+        	        		   MyService.port = Integer.parseInt(newPort.getText().toString());
+        	        		   if(MyService.port < 1024 || MyService.port > 65535){
         	        			   showDialog(DIALOG_ID_INVALIDPORT);
         	        		   }
         	        		   else{
-        	        			   mService.startAndromeServer(new Integer(mService.port));
+        	        			   mService.startAndromeServer(new Integer(MyService.port));
         	        		   }
         	        	   }
         	        	   catch(Exception e){
