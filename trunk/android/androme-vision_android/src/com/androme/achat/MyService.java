@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.widget.Toast;
 
 public class MyService extends Service {
 	protected final IBinder mBinder = new LocalBinder();
@@ -41,14 +42,26 @@ public class MyService extends Service {
 	}
 	
 	public IBinder onBind(Intent intent) {
+		Toast.makeText(this, "Starting server "+ipAddress + ":" + port + ".", Toast.LENGTH_SHORT).show();
 		return mBinder;
 	}
 
 	public void setHandler(Handler mHandler) {
 		msgHandler = mHandler;
+		checkWiFi();
 	}
 	
 	protected void send(String s, String u) {
+		//if(hasWiFi == false) {		
+			/*
+			// Check if the caller is send itself. 
+			Throwable t = new Throwable(); 
+			StackTraceElement[] elements = t.getStackTrace(); 
+			if(!elements[1].getMethodName().equals("send")){
+				send("DIALOG_ID_NOWIFI", "sys");
+			}
+			*/
+		//}
 		Message msg = new Message();
 		Bundle b = new Bundle();
 		b.putString("msg", s);
@@ -62,7 +75,6 @@ public class MyService extends Service {
 	      //Runnable runnable = new ServerThread();
 	      //Thread thread = new Thread(runnable);
 	      //thread.start();
-	      
 	      startAndromeServer(port);
 	      return START_STICKY;
 	}
@@ -84,7 +96,8 @@ public class MyService extends Service {
 	    		
 			    server = new AndromeServer(ipAddress,port);
 			    server.start();
-			    send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");   
+			    send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
+			    //Toast.makeText(this, "Starting server "+ipAddress + ":" + port + ".", Toast.LENGTH_SHORT).show();
     		}
     	} 
     	catch (Exception e) {
@@ -94,7 +107,7 @@ public class MyService extends Service {
 	protected void stopAndromeServer() {
 		if( server != null ) {
 	    		server.stopServer();
-	    		server.interrupt();
+	    		//server.interrupt();
 	    }
 	}
 	
@@ -106,7 +119,7 @@ public class MyService extends Service {
     		
     		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
     			hasWiFi = false;
-    			//showDialog(DIALOG_ID_NOWIFI);
+    			send("DIALOG_ID_NOWIFI", "sys");
     		}
     		else{
     			hasWiFi = true;
@@ -123,7 +136,7 @@ public class MyService extends Service {
      * Create an HTTP server in an separate thread so that UI can stay responsive
      * @author Chen Deng
      */
-    public static class AndromeServer extends Thread {
+    public class AndromeServer extends Thread {
     	
     	protected ServerSocket listener = null;
     	protected boolean running = true;
@@ -142,6 +155,7 @@ public class MyService extends Service {
     	public void run() {
     		while( running ) {
     			try {
+    				checkWiFi();
     				clientSocket = listener.accept();
     				processRequest();
     				sendResponse();
