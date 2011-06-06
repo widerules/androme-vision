@@ -42,13 +42,14 @@ public class MyService extends Service {
 	}
 	
 	public IBinder onBind(Intent intent) {
-		Toast.makeText(this, "Starting server "+ipAddress + ":" + port + ".", Toast.LENGTH_SHORT).show();
+		Toast.makeText(this, "Starting server "+ipAddress + ":" + port + ".", Toast.LENGTH_LONG).show();
 		return mBinder;
 	}
 
 	public void setHandler(Handler mHandler) {
 		msgHandler = mHandler;
 		checkWiFi();
+		send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
 	}
 	
 	protected void send(String s, String u) {
@@ -107,7 +108,7 @@ public class MyService extends Service {
 	protected void stopAndromeServer() {
 		if( server != null ) {
 	    		server.stopServer();
-	    		//server.interrupt();
+	    		server.interrupt();
 	    }
 	}
 	
