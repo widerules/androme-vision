@@ -40,6 +40,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.androme.achat.MyService.LocalBinder;
 
@@ -211,8 +212,12 @@ public class AChatActivity extends Activity {
         try {
         	unbindService(mConnection);
         	stopService(intent);
+        	Toast.makeText(this, "service closed", Toast.LENGTH_SHORT).show();
+        	android.os.Process.killProcess(android.os.Process.myPid());
         }
-        catch(Exception e) {}
+        catch(Exception e) {
+        	Toast.makeText(this, "error closing service", Toast.LENGTH_SHORT).show();
+        }
     }
     
     @Override
