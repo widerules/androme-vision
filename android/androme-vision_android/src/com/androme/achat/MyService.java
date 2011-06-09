@@ -34,6 +34,8 @@ public class MyService extends Service {
     protected static String ipAddress;
     protected static int port = 8080;
     protected static String inputMsg = "";  
+    protected boolean running = false;
+    protected boolean monitorWifi = false;
 	
 	public class LocalBinder extends Binder {
 		MyService getService() {
@@ -48,7 +50,10 @@ public class MyService extends Service {
 
 	public void setHandler(Handler mHandler) {
 		msgHandler = mHandler;
-		checkWiFi();
+		if(ipAddress == null) {
+			checkWiFi();
+			Toast.makeText(this, "dang", Toast.LENGTH_LONG).show();
+		}
 		send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
 	}
 	
@@ -76,13 +81,18 @@ public class MyService extends Service {
 	      //Runnable runnable = new ServerThread();
 	      //Thread thread = new Thread(runnable);
 	      //thread.start();
+	      running = true;
+	      monitorWifi = true;
 	      startAndromeServer(port);
+	      WifiMonitor monitor = new WifiMonitor();
+		  new Thread(monitor).start();
 	      return START_STICKY;
 	}
 	
 	@Override
 	public void onDestroy() {
 		stopAndromeServer();
+		monitorWifi = false;
 		serviceOn = false;
 	}
 	
@@ -96,7 +106,7 @@ public class MyService extends Service {
 	            			( ip_int >> 24   & 0xFF);
 	    		
 			    server = new AndromeServer(ipAddress,port);
-			    server.start();
+			    new Thread(server).start();
 			    send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
 			    //Toast.makeText(this, "Starting server "+ipAddress + ":" + port + ".", Toast.LENGTH_SHORT).show();
     		}
@@ -108,11 +118,12 @@ public class MyService extends Service {
 	protected void stopAndromeServer() {
 		if( server != null ) {
 	    		server.stopServer();
-	    		server.interrupt();
+	    		//server.interrupt();
 	    }
 	}
 	
 	public int checkWiFi(){
+		hasWiFi = false;
     	int ip=0;
     	try{
     		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
@@ -128,19 +139,32 @@ public class MyService extends Service {
     		}
     	}
     	catch(Exception e){
+    		send("Failed to check Wi-Fi.", "xxxERROR");
     	}
     	return ip;
     }
+	
+	public class WifiMonitor implements Runnable {
+		public void run() {
+    		while(MyService.this.monitorWifi) {
+    			try{
+    				checkWiFi();
+    				send("monitor running", "system");
+    				Thread.sleep(1000);
+    			}
+    			catch(Exception e){}
+    		}
+		}
+	}
 	
 	/**
      * Inner class. For easier access to UI components
      * Create an HTTP server in an separate thread so that UI can stay responsive
      * @author Chen Deng
      */
-    public class AndromeServer extends Thread {
+    public class AndromeServer implements Runnable {
     	
     	protected ServerSocket listener = null;
-    	protected boolean running = true;
     	protected BufferedReader inBufReader;
     	BufferedInputStream inBufInputStream;
     	Socket clientSocket;
@@ -154,9 +178,9 @@ public class MyService extends Service {
     	
     	@Override
     	public void run() {
-    		while( running ) {
+    		while(MyService.this.running) {
     			try {
-    				checkWiFi();
+    				//checkWiFi();
     				clientSocket = listener.accept();
     				processRequest();
     				sendResponse();
@@ -167,7 +191,7 @@ public class MyService extends Service {
     	}
     	
     	public void stopServer() {
-    		running = false;
+    		MyService.this.running = false;
     		try {
     			listener.close();
     		} 

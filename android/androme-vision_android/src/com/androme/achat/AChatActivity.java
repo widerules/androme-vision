@@ -73,6 +73,8 @@ public class AChatActivity extends Activity {
     private static final int DIALOG_ID_INVALIDPORT = 3;
     private static boolean fromWiFiSettings = false; 
     
+    protected AlertDialog alert;
+    
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -187,7 +189,7 @@ public class AChatActivity extends Activity {
 				String user = b.getString("user");
 				// system information from service, instead of user input
 				if(user.equals("sys")) {
-					if(message.equals("DIALOG_ID_NOWIFI")) {
+					if(message.equals("DIALOG_ID_NOWIFI") && alert.isShowing() == false) {
 						showDialog(DIALOG_ID_NOWIFI);
 					}
 				}
@@ -230,11 +232,11 @@ public class AChatActivity extends Activity {
     		else {
     			writeToMessageBoard("unBound.", "No good");
     		}
-    		mService.checkWiFi();
+    		//mService.checkWiFi();
     		
 	    	if(MyService.hasWiFi == true && fromWiFiSettings == false){
 	    		writeToMessageBoard("Failed to check WiFi.", "ERROR111");
-	    		mService.checkWiFi();
+	    		//mService.checkWiFi();
 	    	}
 	    	else{
 	    		writeToMessageBoard("Failed to check WiFi.", "ERROR222");
@@ -277,7 +279,6 @@ public class AChatActivity extends Activity {
     @Override
     protected Dialog onCreateDialog(int id) {
     	AlertDialog.Builder builder;
-    	AlertDialog alert;
     	
         switch (id) {
 
@@ -289,12 +290,17 @@ public class AChatActivity extends Activity {
         		   .setPositiveButton("Wi-Fi settings", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
         	        	   fromWiFiSettings = true;
-        	        	   startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));   
+        	        	   startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
         	           }
         		   })
         		   .setNeutralButton("Retry", new DialogInterface.OnClickListener() {
         			   public void onClick(DialogInterface dialog, int id) {
+        				   if(mService.checkWiFi() != 0){
         					   showDialog(DIALOG_ID_CHANGEPORT);
+        				   }
+        				   else {
+        					   showDialog(DIALOG_ID_NOWIFI);
+        				   }
         			   }
         		   })
         		   .setNegativeButton("Quit A-Chat", new DialogInterface.OnClickListener() {
@@ -357,7 +363,7 @@ public class AChatActivity extends Activity {
         	       })
         	       .setNegativeButton("No", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	                dialog.cancel();
+        	        	   dialog.cancel();
         	           }
         	       });
         	alert = builder.create();
