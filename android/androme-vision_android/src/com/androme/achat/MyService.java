@@ -52,7 +52,7 @@ public class MyService extends Service {
 		msgHandler = mHandler;
 		if(ipAddress == null) {
 			checkWiFi();
-			Toast.makeText(this, "dang", Toast.LENGTH_LONG).show();
+			Toast.makeText(this, "ip is null in setHandler of myservice", Toast.LENGTH_LONG).show();
 		}
 		send("Starting server "+ipAddress + ":" + port + ".", "SYSTEM");
 	}
@@ -131,15 +131,18 @@ public class MyService extends Service {
     		
     		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
     			hasWiFi = false;
+    			Toast.makeText(this, "dang1", Toast.LENGTH_LONG).show();
     			send("DIALOG_ID_NOWIFI", "sys");
     		}
     		else{
+    			Toast.makeText(this, "dang2", Toast.LENGTH_LONG).show();
     			hasWiFi = true;
     			ip = wifiInfo.getIpAddress();
     		}
     	}
     	catch(Exception e){
-    		send("Failed to check Wi-Fi.", "xxxERROR");
+    		send("DIALOG_ID_NOWIFI", "sys");
+    		//send("Failed to check Wi-Fi.", "xxxERROR");
     	}
     	return ip;
     }
@@ -149,7 +152,6 @@ public class MyService extends Service {
     		while(MyService.this.monitorWifi) {
     			try{
     				checkWiFi();
-    				send("monitor running", "system");
     				Thread.sleep(1000);
     			}
     			catch(Exception e){}
