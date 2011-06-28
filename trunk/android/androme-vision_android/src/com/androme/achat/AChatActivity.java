@@ -73,7 +73,7 @@ public class AChatActivity extends Activity {
     private static final int DIALOG_ID_INVALIDPORT = 3;
     private static boolean fromWiFiSettings = false; 
     
-    protected AlertDialog alert;
+    protected AlertDialog alert = null;
     
     /** Called when the activity is first created. */
     @Override
@@ -105,7 +105,7 @@ public class AChatActivity extends Activity {
         		try{
 	        		if(!message.getText().toString().equals("")){
 	        			if(mBound) {
-	        				MyService.inputMsg += message.getText();
+	        				mService.inputMsg += message.getText();
 	        				writeToMessageBoard(message.getText().toString(), "ME");
 	        				message.setText("");
 	        			}
@@ -126,7 +126,7 @@ public class AChatActivity extends Activity {
 	        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
 	        			if(!message.getText().toString().equals("")){
 	        				if(mBound) {
-	        					MyService.inputMsg += message.getText();
+	        					mService.inputMsg += message.getText();
 	        					writeToMessageBoard(message.getText().toString(), "ME");
 	        					message.setText("");
 	        				}
@@ -226,6 +226,7 @@ public class AChatActivity extends Activity {
     protected void onResume() {
     	super.onResume();
     	try{
+    		///////////////////
     		if(mBound) {
     			writeToMessageBoard("Bound.", "Nice");
     		}
@@ -233,14 +234,15 @@ public class AChatActivity extends Activity {
     			writeToMessageBoard("unBound.", "No good");
     		}
     		//mService.checkWiFi();
+    		//////////////////////
     		
-	    	if(MyService.hasWiFi == true && fromWiFiSettings == false){
+	    	if(mService.hasWiFi == true && fromWiFiSettings == false){
 	    		writeToMessageBoard("Failed to check WiFi.", "ERROR111");
 	    		//mService.checkWiFi();
 	    	}
 	    	else{
 	    		writeToMessageBoard("Failed to check WiFi.", "ERROR222");
-	    		mService.startAndromeServer(MyService.port);
+	    		mService.startAndromeServer(mService.port);
 	    		fromWiFiSettings = true;
 	    	}
     	}
@@ -308,45 +310,58 @@ public class AChatActivity extends Activity {
         				   AChatActivity.this.finish();
         			   }
         		   });	   
+        	/*
         	alert = builder.create();
         	return alert;
         }
         switch (id) {	
+        */
         case DIALOG_ID_CHANGEPORT:
         	builder = new AlertDialog.Builder(this);
         	final EditText newPort = new EditText(this);
         	newPort.setSingleLine(true);
         	newPort.setInputType(InputType.TYPE_CLASS_NUMBER);
-        	newPort.setText(MyService.port+"");
+        	newPort.setText(mService.port+"");
         	
         	builder.setMessage("Please enter the new port: ")
         	       .setCancelable(false)
         	       .setView(newPort)
         	       .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	        	   mService.stopAndromeServer();
-        	        	   try{
-        	        		   MyService.port = Integer.parseInt(newPort.getText().toString());
-        	        		   if(MyService.port < 1024 || MyService.port > 65535){
-        	        			   showDialog(DIALOG_ID_INVALIDPORT);
-        	        		   }
-        	        		   else{
-        	        			   mService.startAndromeServer(new Integer(MyService.port));
-        	        		   }
+        	        	   if(mBound) {
+	        	        	   mService.stopAndromeServer();
+	        	        	   try{
+	        	        		   mService.port = Integer.parseInt(newPort.getText().toString());
+	        	        		   if(mService.port < 1024 || mService.port > 65535){
+	        	        			   showDialog(DIALOG_ID_INVALIDPORT);
+	        	        		   }
+	        	        		   else{
+	        	        			   mService.startAndromeServer(new Integer(mService.port));
+	        	        		   }
+	        	        	   }
+	        	        	   catch(Exception e){
+	        	        		   showDialog(DIALOG_ID_INVALIDPORT);
+	        	        	   }
         	        	   }
-        	        	   catch(Exception e){
-        	        		   showDialog(DIALOG_ID_INVALIDPORT);
+        	        	   else {
+        	        		   writeToMessageBoard("Not bound to service.", "ERROR");
         	        	   }
         	           }
         	       })
         	       .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
         	           public void onClick(DialogInterface dialog, int id) {
-        	        	   if(mService.checkWiFi() != 0){
-        	        		   dialog.cancel();
+        	        	   if(mBound) {
+	        	        	   if(mService.checkWiFi() != 0){
+	        	        		   dialog.cancel();
+	        	        	   }
+	        	        	   else{
+	        	        		   showDialog(DIALOG_ID_NOWIFI);
+	        	        	   }
         	        	   }
-        	        	   else{
-        	        		   showDialog(DIALOG_ID_NOWIFI);
+        	        	   else {
+        	        		   writeToMessageBoard("Not bound to service.", "ERROR");
         	        	   }
+        	        	   
         	           }
         	       });
         	alert = builder.create();
