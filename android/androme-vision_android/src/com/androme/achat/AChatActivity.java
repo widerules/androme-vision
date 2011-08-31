@@ -204,9 +204,11 @@ public class AChatActivity extends Activity {
     /**
      * Ask for confirmation upon exit. Will become necessary in later implementations.
      */
+    /*
     public void onBackPressed() {
     	showDialog(DIALOG_ID_EXIT);
     }
+    */
     
     @Override
     protected void onDestroy() {
@@ -253,7 +255,6 @@ public class AChatActivity extends Activity {
     
     private ServiceConnection mConnection = new ServiceConnection() {
 
-        @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             try {
             	LocalBinder binder = (MyService.LocalBinder) service;
@@ -264,7 +265,6 @@ public class AChatActivity extends Activity {
             catch(Exception e) {}
         }
 
-        @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mService.setHandler(null);
         	mBound = false;

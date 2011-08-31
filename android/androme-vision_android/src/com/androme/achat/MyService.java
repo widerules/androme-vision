@@ -123,26 +123,29 @@ public class MyService extends Service {
 	}
 	
 	public int checkWiFi(){
-		hasWiFi = false;
-    	int ip=0;
-    	try{
+    	int ip = 0;
+    	try {
     		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
     		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
     		
-    		if( wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
-    			hasWiFi = false;
-    			Toast.makeText(this, "dang1", Toast.LENGTH_LONG).show();
-    			send("DIALOG_ID_NOWIFI", "sys");
-    		}
-    		else{
-    			Toast.makeText(this, "dang2", Toast.LENGTH_LONG).show();
-    			hasWiFi = true;
-    			ip = wifiInfo.getIpAddress();
+    		if (wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
+    			if (hasWiFi) {
+	    			hasWiFi = false;
+	    			if (msgHandler != null) {
+	    				send("DIALOG_ID_NOWIFI", "sys");
+	    			}
+    			}
+    		} else {
+    			if (!hasWiFi) {
+    				hasWiFi = true;
+    				ip = wifiInfo.getIpAddress();
+    			}
     		}
     	}
-    	catch(Exception e){
-    		send("DIALOG_ID_NOWIFI", "sys");
-    		//send("Failed to check Wi-Fi.", "xxxERROR");
+    	catch (Exception e) {
+    		if (msgHandler != null) {
+				send("DIALOG_ID_NOWIFI", "sys");
+			}
     	}
     	return ip;
     }
@@ -178,11 +181,9 @@ public class MyService extends Service {
     		listener = new ServerSocket(port,0,ipadr);
     	}
     	
-    	@Override
     	public void run() {
     		while(MyService.this.running) {
     			try {
-    				//checkWiFi();
     				clientSocket = listener.accept();
     				processRequest();
     				sendResponse();
