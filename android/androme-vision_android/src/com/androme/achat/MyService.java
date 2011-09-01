@@ -30,7 +30,7 @@ public class MyService extends Service {
 	public static final int START_STICKY = 1;
     protected static final int MSGBUFFER_SIZE = 4096;
     protected AndromeServer server = null;
-    protected static boolean hasWiFi = false;
+    protected static boolean hasWiFi = true;
     protected static String ipAddress;
     protected static int port = 8080;
     protected static String inputMsg = "";  
@@ -78,27 +78,26 @@ public class MyService extends Service {
 	
 	public int onStartCommand(Intent intent, int flags, int startId) { 
 	      serviceOn = true;
-	      //Runnable runnable = new ServerThread();
-	      //Thread thread = new Thread(runnable);
-	      //thread.start();
 	      running = true;
-	      monitorWifi = true;
 	      startAndromeServer(port);
-	      WifiMonitor monitor = new WifiMonitor();
-		  new Thread(monitor).start();
+	      
 	      return START_STICKY;
 	}
 	
 	@Override
 	public void onDestroy() {
 		stopAndromeServer();
-		monitorWifi = false;
 		serviceOn = false;
 	}
 	
 	protected void startAndromeServer(int port) {
     	try {
+    		monitorWifi = true;
+    		WifiMonitor monitor = new WifiMonitor();
+  		  	new Thread(monitor).start();
+  		  	
     		int ip_int = checkWiFi();
+    		// Convert IP address format
     		if(ip_int != 0){
 	    		ipAddress = ((ip_int       ) & 0xFF) + "." +
 	            			((ip_int >>  8 ) & 0xFF) + "." +
@@ -117,29 +116,26 @@ public class MyService extends Service {
 	
 	protected void stopAndromeServer() {
 		if( server != null ) {
-	    		server.stopServer();
-	    		//server.interrupt();
+			monitorWifi = false;
+	    	server.stopServer();
+	    	//server.interrupt();
 	    }
 	}
 	
 	public int checkWiFi(){
     	int ip = 0;
     	try {
-    		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
-    		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-    		
-    		if (wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
-    			if (hasWiFi) {
-	    			hasWiFi = false;
-	    			if (msgHandler != null) {
-	    				send("DIALOG_ID_NOWIFI", "sys");
-	    			}
-    			}
-    		} else {
-    			if (!hasWiFi) {
-    				hasWiFi = true;
-    				ip = wifiInfo.getIpAddress();
-    			}
+    		if (hasWiFi) {
+	    		WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+	    		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+	    		if (wifiInfo.getSupplicantState() != SupplicantState.COMPLETED) {
+		    		hasWiFi = false;
+		    		if (msgHandler != null) {
+		    			send("DIALOG_ID_NOWIFI", "sys");
+		    		}
+	    		} else {
+	    			ip = wifiInfo.getIpAddress();
+	    		}
     		}
     	}
     	catch (Exception e) {

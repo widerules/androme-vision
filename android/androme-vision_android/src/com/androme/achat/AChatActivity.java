@@ -75,7 +75,6 @@ public class AChatActivity extends Activity {
     
     protected AlertDialog alert = null;
     
-    /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,7 +104,7 @@ public class AChatActivity extends Activity {
         		try{
 	        		if(!message.getText().toString().equals("")){
 	        			if(mBound) {
-	        				mService.inputMsg += message.getText();
+	        				MyService.inputMsg += message.getText();
 	        				writeToMessageBoard(message.getText().toString(), "ME");
 	        				message.setText("");
 	        			}
@@ -126,7 +125,7 @@ public class AChatActivity extends Activity {
 	        		if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
 	        			if(!message.getText().toString().equals("")){
 	        				if(mBound) {
-	        					mService.inputMsg += message.getText();
+	        					MyService.inputMsg += message.getText();
 	        					writeToMessageBoard(message.getText().toString(), "ME");
 	        					message.setText("");
 	        				}
@@ -297,6 +296,7 @@ public class AChatActivity extends Activity {
         		   })
         		   .setNeutralButton("Retry", new DialogInterface.OnClickListener() {
         			   public void onClick(DialogInterface dialog, int id) {
+        				   MyService.hasWiFi = true;
         				   if(mService.checkWiFi() != 0){
         					   showDialog(DIALOG_ID_CHANGEPORT);
         				   }
